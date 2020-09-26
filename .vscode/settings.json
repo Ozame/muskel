@@ -1,0 +1,4 @@
+{
+    "python.pythonPath": "/home/oze/.pyenv/versions/muskel/bin/python",
+    "python.formatting.provider": "black"
+}
