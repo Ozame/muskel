@@ -1,7 +1,9 @@
 from datetime import datetime
 from json import dumps
+from os import execlp
 from re import template
 import falcon
+from mongoengine.errors import DoesNotExist
 import model as mo
 import json
 import uuid
@@ -11,28 +13,33 @@ app = application = falcon.API()
 
 class ExerciseResource:
     def on_get(self, req, resp):
-        resp.status = falcon.HTTP_200
-        exs = mo.ExerciseSchema(many=True).dumps(mo.Exercise.objects)
-        resp.body = exs
+        resp.body = mo.ExerciseSchema(many=True).dumps(mo.Exercise.objects)
 
     def on_get_id(self, req, resp, id):
-        result = mo.Exercise.objects(uuid=id).get()
-        resp.body = mo.ExerciseSchema().dumps(result)
+        try:
+            result = mo.Exercise.objects(uuid=id).get()
+            resp.body = mo.ExerciseSchema().dumps(result)
+        except DoesNotExist:
+            resp.status = falcon.HTTP_404
 
     def on_put_id(self, req, resp, id):
+        try:
+            old = mo.Exercise.objects(uuid=id).get()
+        except DoesNotExist:
+            resp.status = falcon.HTTP_404
+            return
         doc = req.bounded_stream.read()
-        old = mo.Exercise.objects(uuid=id).get()
         updated = mo.ExerciseSchema().loads(doc)
-        if old:
-            updated.uuid = id
-            updated.save()
+        updated.uuid = id
+        updated.save()
         # TODO: validation errors
 
     def on_post(self, req, resp):
         doc = json.load(req.bounded_stream)
-        new_ex = mo.Exercise(doc)
+        new_ex = mo.Exercise(**doc)
         new_ex.uuid = uuid.uuid4()
         new_ex.save()
+        resp.status = falcon.HTTP_201
 
     def on_delete_id(self, req, resp, id):
         mo.Exercise.objects(uuid=id).delete()
@@ -44,12 +51,12 @@ class TemplateResource:
         resp.body = result
 
     def on_get_id(self, req, resp, id):
-        wo = mo.WorkoutTemplate.objects(uuid=id).get()
-        if wo:
+        try:
+            wo = mo.WorkoutTemplate.objects(uuid=id).get()
             result = mo.WorkoutTemplateSchema().dumps(wo)
-        else:
-            result = []
-        resp.body = result
+            resp.body = result
+        except DoesNotExist:
+            resp.status = falcon.HTTP_404
 
     def on_put(self, req, resp):
         pass
@@ -59,6 +66,7 @@ class TemplateResource:
         new_wo = mo.WorkoutTemplate(**doc)
         new_wo.uuid = uuid.uuid4()
         new_wo.save()
+        resp.status = falcon.HTTP_201
 
     def on_delete_id(self, req, resp, id):
         mo.WorkoutTemplate.objects(uuid=id).delete()
@@ -66,20 +74,44 @@ class TemplateResource:
 
 class MoveResource:
     def on_get(self, req, resp, w_id):
-        wo = mo.Workout.objects(uuid=w_id)
+        try:
+            wo = mo.Workout.objects(uuid=w_id).get()
+        except DoesNotExist:
+            resp.status = falcon.HTTP_404
+            return
         resp.body = mo.MoveSchema(many=True).dumps(wo.moves)
 
     def on_get_id(self, req, resp, w_id, m_id):
-        resp.body = f"{w_id} ja {m_id}"
+        try:
+            move = mo.Move.objects(uuid=m_id).get()
+        except DoesNotExist:
+            resp.status = falcon.HTTP_404
+            return
+        resp.body = mo.MoveSchema().dumps(move)
 
-    def on_put(self, req, resp):
+    def on_put_id(self, req, resp, w_id, m_id):
         pass
 
-    def on_post(self, req, resp):
-        pass
+    def on_post(self, req, resp, w_id):
+        wo = mo.Workout.objects(uuid=w_id).get()
+        doc = json.load(req.bounded_stream)
+        new_move = mo.Move(**doc)
+        new_move.uuid = uuid.uuid4()
+        exercise = mo.Exercise.objects(uuid=doc["exercise"]).get()
+        new_move.exercise = exercise
+        new_move.save()
+        wo.update(push__moves=new_move)
+        resp.body = mo.MoveSchema().dumps(new_move)
+        resp.status = falcon.HTTP_201
 
-    def on_delete(self, req, resp):
-        pass
+    def on_delete_id(self, req, resp, w_id, m_id):
+        try:
+            move = mo.Move.objects(uuid=m_id).get()
+        except DoesNotExist:
+            resp.status = falcon.HTTP_404
+            return
+        mo.Workout.objects(uuid=w_id).update_one(pull__moves=move)
+        move.delete()
 
 
 class WorkoutResource:
@@ -93,7 +125,6 @@ class WorkoutResource:
         else:
             result = []
         resp.body = result
-        
 
     def on_put_id(self, req, resp, w_id):
         pass
@@ -107,7 +138,6 @@ class WorkoutResource:
 
     def on_delete_id(self, req, resp, w_id):
         mo.Workout.objects(uuid=w_id).delete()
-        
 
 
 # Resource instances
@@ -117,11 +147,11 @@ moves = MoveResource()
 templates = TemplateResource()
 
 # Routing
+app.add_route("/templates", templates)
+app.add_route("/templates/{id}", templates, suffix="id")
 app.add_route("/exercises", exercises)
 app.add_route("/exercises/{id}", exercises, suffix="id")
 app.add_route("/workouts", workouts)
 app.add_route("/workouts/{w_id}", workouts, suffix="id")
 app.add_route("/workouts/{w_id}/moves", moves)
 app.add_route("/workouts/{w_id}/moves/{m_id}", moves, suffix="id")
-app.add_route("/templates", templates)
-app.add_route("/templates/{id}", templates, suffix="id")

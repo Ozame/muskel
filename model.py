@@ -9,6 +9,7 @@ from dataclasses_json import dataclass_json
 from marshmallow import Schema, fields, post_load
 
 from mongoengine import *
+import mongoengine
 
 connect(db="muskel", host="localhost", port=27017)
 
@@ -54,7 +55,7 @@ class Move(Document):
     reps = IntField(min_value=0)
     weight = IntField(min_value=0)
     notes = StringField(default="")
-    exercise = ReferenceField(Exercise)
+    exercise = ReferenceField(Exercise, reverse_delete_rule=mongoengine.CASCADE)
 
 class MoveSchema(Schema):
     uuid = fields.UUID(dump_only=True)
