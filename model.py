@@ -66,6 +66,10 @@ class MoveSchema(Schema):
     notes = fields.Str()
     exercise = fields.Nested(ExerciseSchema)
 
+    @post_load
+    def make_move(self, data, **kwargs):
+        return Move(**data)
+
 class Workout(Document):
     uuid = UUIDField(primary_key=True)
     name = StringField(required=True, max_length=200)
@@ -77,3 +81,7 @@ class WorkoutSchema(Schema):
     name = fields.Str()
     date = fields.DateTime()
     moves = fields.List(fields.Nested(MoveSchema))
+
+    @post_load
+    def make_workout(self, data, **kwargs):
+        return Workout(**data)
