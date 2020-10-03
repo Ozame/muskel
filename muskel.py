@@ -1,14 +1,12 @@
 from datetime import datetime
-from json import dumps
-from os import execlp
-from re import template
 import falcon
 from mongoengine.errors import DoesNotExist
 import model as mo
-import json
 import uuid
 
 app = application = falcon.API()
+
+# TODO reformat post to use schema loading
 
 
 class ExerciseResource:
@@ -198,8 +196,10 @@ app.add_route("/templates", templates)
 app.add_route("/templates/{id}", templates, suffix="id")
 app.add_route("/templates/{id}/exercises", templates, suffix="exercises")
 app.add_route("/templates/{id}/exercises/{e_id}", templates, suffix="exercise")
+
 app.add_route("/exercises", exercises)
 app.add_route("/exercises/{id}", exercises, suffix="id")
+
 app.add_route("/workouts", workouts)
 app.add_route("/workouts/{w_id}", workouts, suffix="id")
 app.add_route("/workouts/{w_id}/moves", moves)

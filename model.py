@@ -1,11 +1,4 @@
 """Module for models that contain data"""
-from dataclasses import dataclass, field
-from os import name
-from typing import List, Any
-from enum import Enum, auto
-from datetime import date, datetime
-from bson.json_util import default
-from dataclasses_json import dataclass_json
 from marshmallow import Schema, fields, post_load
 
 from mongoengine import *
@@ -46,7 +39,7 @@ class WorkoutTemplateSchema(Schema):
     @post_load
     def make_WorkoutTemplate(self, data, **kwargs):
         return WorkoutTemplate(**data)
-    
+
 
 class Move(Document):
     uuid = UUIDField(primary_key=True)
@@ -56,6 +49,7 @@ class Move(Document):
     weight = IntField(min_value=0)
     notes = StringField(default="")
     exercise = ReferenceField(Exercise, reverse_delete_rule=mongoengine.CASCADE)
+
 
 class MoveSchema(Schema):
     uuid = fields.UUID(dump_only=True)
@@ -70,11 +64,13 @@ class MoveSchema(Schema):
     def make_move(self, data, **kwargs):
         return Move(**data)
 
+
 class Workout(Document):
     uuid = UUIDField(primary_key=True)
     name = StringField(required=True, max_length=200)
     date = DateField()
     moves = ListField(ReferenceField(Move))
+
 
 class WorkoutSchema(Schema):
     uuid = fields.UUID(dump_only=True)
