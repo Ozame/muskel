@@ -28,14 +28,12 @@ class ExerciseResource:
         except DoesNotExist:
             resp.status = falcon.HTTP_404
             return
-        doc = req.bounded_stream.read()
-        updated = mo.ExerciseSchema().loads(doc)
+        updated = mo.ExerciseSchema().load(req.media)
         updated.uuid = id
         updated.save()
-        # TODO: validation errors
 
     def on_post(self, req, resp):
-        doc = json.load(req.bounded_stream)
+        doc = req.media
         new_ex = mo.Exercise(**doc)
         new_ex.uuid = uuid.uuid4()
         new_ex.save()
@@ -58,11 +56,38 @@ class TemplateResource:
         except DoesNotExist:
             resp.status = falcon.HTTP_404
 
-    def on_put(self, req, resp):
-        pass
+    def on_get_exercises(self, req, resp, id):
+        try:
+            wo = mo.WorkoutTemplate.objects(uuid=id).get()
+        except DoesNotExist:
+            resp.status = falcon.HTTP_404
+            return
+        resp.body = mo.ExerciseSchema(many=True).dumps(wo.exercises)
+
+    def on_put_id(self, req, resp, id):
+        try:
+            old = mo.WorkoutTemplate.objects(uuid=id).get()
+        except DoesNotExist:
+            resp.status = falcon.HTTP_404
+            return
+        updated = mo.WorkoutTemplateSchema().load(req.media)
+        updated.uuid = id
+        updated.save()
+
+    def on_post_exercises(self, req, resp, id):
+        try:
+            wo = mo.WorkoutTemplate.objects(uuid=id).get()
+        except DoesNotExist:
+            resp.status = falcon.HTTP_404
+            return
+        e_uuid = req.media.get("exercise_uuid")
+        ex = mo.Exercise.objects(uuid=e_uuid).get()
+        mo.WorkoutTemplate.objects(uuid=id).update_one(add_to_set__exercises=ex)
+        resp.body = mo.ExerciseSchema().dumps(ex)
+        resp.status = falcon.HTTP_201
 
     def on_post(self, req, resp):
-        doc = json.load(req.bounded_stream)
+        doc = req.media
         new_wo = mo.WorkoutTemplate(**doc)
         new_wo.uuid = uuid.uuid4()
         new_wo.save()
@@ -70,6 +95,14 @@ class TemplateResource:
 
     def on_delete_id(self, req, resp, id):
         mo.WorkoutTemplate.objects(uuid=id).delete()
+
+    def on_delete_exercise(self, req, resp, id, e_id):
+        try:
+            ex = mo.Exercise.objects(uuid=e_id).get()
+        except DoesNotExist:
+            resp.status = falcon.HTTP_404
+            return
+        mo.WorkoutTemplate.objects(uuid=id).update_one(pull__exercises=ex)
 
 
 class MoveResource:
@@ -90,11 +123,18 @@ class MoveResource:
         resp.body = mo.MoveSchema().dumps(move)
 
     def on_put_id(self, req, resp, w_id, m_id):
-        pass
+        try:
+            wo = mo.Move.objects(uuid=m_id).get()
+        except DoesNotExist:
+            resp.status = falcon.HTTP_404
+            return
+        updated = mo.MoveSchema().load(req.media)
+        updated.uuid = id
+        updated.save()
 
     def on_post(self, req, resp, w_id):
         wo = mo.Workout.objects(uuid=w_id).get()
-        doc = json.load(req.bounded_stream)
+        doc = req.media
         new_move = mo.Move(**doc)
         new_move.uuid = uuid.uuid4()
         exercise = mo.Exercise.objects(uuid=doc["exercise"]).get()
@@ -127,10 +167,17 @@ class WorkoutResource:
         resp.body = result
 
     def on_put_id(self, req, resp, w_id):
-        pass
+        try:
+            wo = mo.Workout.objects(uuid=w_id).get()
+        except DoesNotExist:
+            resp.status = falcon.HTTP_404
+            return
+        updated = mo.WorkoutSchema().load(req.media)
+        updated.uuid = w_id
+        updated.save()
 
     def on_post(self, req, resp):
-        doc = json.load(req.bounded_stream)
+        doc = req.media
         new_wo = mo.Workout(**doc)
         new_wo.uuid = uuid.uuid4()
         new_wo.date = datetime.now()
@@ -149,6 +196,8 @@ templates = TemplateResource()
 # Routing
 app.add_route("/templates", templates)
 app.add_route("/templates/{id}", templates, suffix="id")
+app.add_route("/templates/{id}/exercises", templates, suffix="exercises")
+app.add_route("/templates/{id}/exercises/{e_id}", templates, suffix="exercise")
 app.add_route("/exercises", exercises)
 app.add_route("/exercises/{id}", exercises, suffix="id")
 app.add_route("/workouts", workouts)
