@@ -5,6 +5,7 @@ import model as mo
 import uuid
 
 app = application = falcon.API()
+app.req_options.strip_url_path_trailing_slash = True
 
 # TODO reformat post to use schema loading
 
