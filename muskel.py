@@ -1,10 +1,12 @@
 from datetime import datetime
 import falcon
 from mongoengine.errors import DoesNotExist
+from middleware import CORSComponent
 import model as mo
 import uuid
 
-app = application = falcon.API()
+cors = CORSComponent()
+app = application = falcon.API(middleware=cors)
 app.req_options.strip_url_path_trailing_slash = True
 
 # TODO reformat post to use schema loading
