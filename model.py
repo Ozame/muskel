@@ -1,5 +1,6 @@
 """Module for models that contain data"""
 from marshmallow import Schema, fields, post_load
+from marshmallow.utils import EXCLUDE
 
 from mongoengine import *
 import mongoengine
@@ -15,6 +16,8 @@ class Exercise(Document):
 
 
 class ExerciseSchema(Schema):
+    class Meta:
+        unknown = EXCLUDE
     uuid = fields.UUID(dump_only=True)
     name = fields.Str()
     type = fields.Str()
@@ -32,6 +35,8 @@ class WorkoutTemplate(Document):
 
 
 class WorkoutTemplateSchema(Schema):
+    class Meta:
+        unknown = EXCLUDE
     uuid = fields.UUID(dump_only=True)
     name = fields.Str()
     exercises = fields.List(fields.Nested(ExerciseSchema))
@@ -52,6 +57,8 @@ class Move(Document):
 
 
 class MoveSchema(Schema):
+    class Meta:
+        unknown = EXCLUDE
     uuid = fields.UUID(dump_only=True)
     name = fields.Str()
     sets = fields.Integer()
@@ -73,6 +80,8 @@ class Workout(Document):
 
 
 class WorkoutSchema(Schema):
+    class Meta:
+        unknown = EXCLUDE
     uuid = fields.UUID(dump_only=True)
     name = fields.Str()
     date = fields.DateTime()
