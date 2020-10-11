@@ -2,22 +2,22 @@
 from marshmallow import Schema, fields, post_load
 from marshmallow.utils import EXCLUDE
 
-from mongoengine import *
-import mongoengine
+import mongoengine as me
 
-connect(db="muskel", host="localhost", port=27017)
+me.connect(db="muskel", host="localhost", port=27017)
 
 
-class Exercise(Document):
-    uuid = UUIDField(primary_key=True)
-    name = StringField(required=True, max_length=200)
-    type = StringField(required=True, default="STRENGTH")
-    description = StringField(default="")
+class Exercise(me.Document):
+    uuid = me.UUIDField(primary_key=True)
+    name = me.StringField(required=True, max_length=200)
+    type = me.StringField(required=True, default="STRENGTH")
+    description = me.StringField(default="")
 
 
 class ExerciseSchema(Schema):
     class Meta:
         unknown = EXCLUDE
+
     uuid = fields.UUID(dump_only=True)
     name = fields.Str()
     type = fields.Str()
@@ -28,15 +28,16 @@ class ExerciseSchema(Schema):
         return Exercise(**data)
 
 
-class WorkoutTemplate(Document):
-    uuid = UUIDField(primary_key=True)
-    name = StringField(required=True, max_length=200)
-    exercises = ListField(ReferenceField(Exercise))
+class WorkoutTemplate(me.Document):
+    uuid = me.UUIDField(primary_key=True)
+    name = me.StringField(required=True, max_length=200)
+    exercises = me.ListField(me.ReferenceField(Exercise, reverse_delete_rule=me.DENY))
 
 
 class WorkoutTemplateSchema(Schema):
     class Meta:
         unknown = EXCLUDE
+
     uuid = fields.UUID(dump_only=True)
     name = fields.Str()
     exercises = fields.List(fields.Nested(ExerciseSchema))
@@ -46,19 +47,20 @@ class WorkoutTemplateSchema(Schema):
         return WorkoutTemplate(**data)
 
 
-class Move(Document):
-    uuid = UUIDField(primary_key=True)
-    name = StringField(required=True, max_length=200)
-    sets = IntField(min_value=0)
-    reps = IntField(min_value=0)
-    weight = IntField(min_value=0)
-    notes = StringField(default="")
-    exercise = ReferenceField(Exercise, reverse_delete_rule=mongoengine.CASCADE)
+class Move(me.Document):
+    uuid = me.UUIDField(primary_key=True)
+    name = me.StringField(required=True, max_length=200)
+    sets = me.IntField(min_value=0)
+    reps = me.IntField(min_value=0)
+    weight = me.IntField(min_value=0)
+    notes = me.StringField(default="")
+    exercise = me.ReferenceField(Exercise, reverse_delete_rule=me.DENY)
 
 
 class MoveSchema(Schema):
     class Meta:
         unknown = EXCLUDE
+
     uuid = fields.UUID(dump_only=True)
     name = fields.Str()
     sets = fields.Integer()
@@ -72,16 +74,17 @@ class MoveSchema(Schema):
         return Move(**data)
 
 
-class Workout(Document):
-    uuid = UUIDField(primary_key=True)
-    name = StringField(required=True, max_length=200)
-    date = DateField()
-    moves = ListField(ReferenceField(Move))
+class Workout(me.Document):
+    uuid = me.UUIDField(primary_key=True)
+    name = me.StringField(required=True, max_length=200)
+    date = me.DateField()
+    moves = me.ListField(me.ReferenceField(Move, reverse_delete_rule=me.DENY))
 
 
 class WorkoutSchema(Schema):
     class Meta:
         unknown = EXCLUDE
+
     uuid = fields.UUID(dump_only=True)
     name = fields.Str()
     date = fields.DateTime()
