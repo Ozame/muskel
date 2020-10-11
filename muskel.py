@@ -32,6 +32,7 @@ class ExerciseResource:
         updated = mo.ExerciseSchema().load(req.media)
         updated.uuid = id
         updated.save()
+        resp.body = mo.ExerciseSchema().dumps(updated)
 
     def on_post(self, req, resp):
         doc = req.media
@@ -39,6 +40,7 @@ class ExerciseResource:
         new_ex.uuid = uuid.uuid4()
         new_ex.save()
         resp.status = falcon.HTTP_201
+        resp.body = mo.ExerciseSchema().dumps(new_ex)
 
     def on_delete_id(self, req, resp, id):
         mo.Exercise.objects(uuid=id).delete()
@@ -74,6 +76,7 @@ class TemplateResource:
         updated = mo.WorkoutTemplateSchema().load(req.media)
         updated.uuid = id
         updated.save()
+        resp.body = mo.WorkoutTemplateSchema().dumps(updated)
 
     def on_post_exercises(self, req, resp, id):
         try:
@@ -93,6 +96,7 @@ class TemplateResource:
         new_wo.uuid = uuid.uuid4()
         new_wo.save()
         resp.status = falcon.HTTP_201
+        resp.body = mo.WorkoutTemplateSchema().dumps(new_wo)
 
     def on_delete_id(self, req, resp, id):
         mo.WorkoutTemplate.objects(uuid=id).delete()
@@ -132,6 +136,7 @@ class MoveResource:
         updated = mo.MoveSchema().load(req.media)
         updated.uuid = id
         updated.save()
+        resp.body = mo.MoveSchema().dumps(updated)
 
     def on_post(self, req, resp, w_id):
         wo = mo.Workout.objects(uuid=w_id).get()
@@ -176,6 +181,7 @@ class WorkoutResource:
         updated = mo.WorkoutSchema().load(req.media)
         updated.uuid = w_id
         updated.save()
+        resp.body = mo.WorkoutSchema().dumps(updated)
 
     def on_post(self, req, resp):
         doc = req.media
@@ -183,6 +189,7 @@ class WorkoutResource:
         new_wo.uuid = uuid.uuid4()
         new_wo.date = datetime.now()
         new_wo.save()
+        resp.body = mo.WorkoutSchema().dumps(new_wo)
 
     def on_delete_id(self, req, resp, w_id):
         mo.Workout.objects(uuid=w_id).delete()
