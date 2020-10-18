@@ -1,12 +1,22 @@
 from datetime import datetime
 import falcon
 from mongoengine.errors import DoesNotExist
+from falcon_auth import FalconAuthMiddleware, JWTAuthBackend
+from authentication import user_loader
 from middleware import CORSComponent
 import model as mo
 import uuid
 
+# Authentication 
+auth_backend = JWTAuthBackend(user_loader=user_loader, secret_key='secret')
+jwt = auth_backend.get_auth_token({'username': 'samu', 'password': 'pass'})
+print(jwt)
+auth_middleware = FalconAuthMiddleware(auth_backend)
+
+# Middleware that handles CORS
 cors = CORSComponent()
-app = application = falcon.API(middleware=cors)
+
+app = application = falcon.API(middleware=[cors, auth_middleware])
 app.req_options.strip_url_path_trailing_slash = True
 
 # TODO reformat post to use schema loading
