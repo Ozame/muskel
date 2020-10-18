@@ -7,6 +7,18 @@ import mongoengine as me
 me.connect(db="muskel", host="localhost", port=27017)
 
 
+class Role(me.Document):
+    uuid = me.UUIDField(primary_key=True)
+    name = me.StringField(required=True, unique=True)
+
+
+class User(me.Document):
+    uuid = me.UUIDField(primary_key=True)
+    username = me.StringField(required=True, max_length=32, unique=True)
+    password = me.StringField(required=True)
+    roles = me.ListField(me.ReferenceField(Role, reverse_delete_rule=me.DENY))
+
+
 class Exercise(me.Document):
     uuid = me.UUIDField(primary_key=True)
     name = me.StringField(required=True, max_length=200)

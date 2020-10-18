@@ -1,17 +1,18 @@
 from datetime import datetime
+import json
 import falcon
 from mongoengine.errors import DoesNotExist
 from falcon_auth import FalconAuthMiddleware, JWTAuthBackend
-from authentication import user_loader
+from authentication import authenticate_user, user_loader
 from middleware import CORSComponent
 import model as mo
 import uuid
 
-# Authentication 
-auth_backend = JWTAuthBackend(user_loader=user_loader, secret_key='secret')
-jwt = auth_backend.get_auth_token({'username': 'samu', 'password': 'pass'})
-print(jwt)
-auth_middleware = FalconAuthMiddleware(auth_backend)
+# Authentication
+auth_backend = JWTAuthBackend(
+    user_loader=user_loader, secret_key="secret", auth_header_prefix="Bearer"
+)
+auth_middleware = FalconAuthMiddleware(auth_backend, exempt_routes=["/token"])
 
 # Middleware that handles CORS
 cors = CORSComponent()
@@ -205,13 +206,29 @@ class WorkoutResource:
         mo.Workout.objects(uuid=w_id).delete()
 
 
+class TokenResource:
+    def on_post(self, req, resp):
+        """Returns JWT token if login credentials are correct"""
+        doc = req.media
+        username = doc["username"]
+        password = doc["password"]
+        if user := authenticate_user(username, password):
+            token = auth_backend.get_auth_token({"username": user.username})
+            resp.body = json.dumps({"token": token})
+        else:
+            resp.status = falcon.HTTP_400
+
+
 # Resource instances
 exercises = ExerciseResource()
 workouts = WorkoutResource()
 moves = MoveResource()
 templates = TemplateResource()
+token = TokenResource()
 
 # Routing
+app.add_route("/token", token)
+
 app.add_route("/templates", templates)
 app.add_route("/templates/{id}", templates, suffix="id")
 app.add_route("/templates/{id}/exercises", templates, suffix="exercises")
@@ -224,3 +241,16 @@ app.add_route("/workouts", workouts)
 app.add_route("/workouts/{w_id}", workouts, suffix="id")
 app.add_route("/workouts/{w_id}/moves", moves)
 app.add_route("/workouts/{w_id}/moves/{m_id}", moves, suffix="id")
+
+if __name__ == "__main__":
+    admin_role = mo.Role.objects(name="ADMIN")
+    if admin_role.count() == 0:
+        admin_role = mo.Role(uuid=uuid.uuid4(), name="ADMIN")
+        admin_role.save()
+    else:
+        admin_role = admin_role.get()
+    admin_user = mo.User.objects(username="ADMIN")
+    if admin_user.count() == 0:
+        admin_user = mo.User(uuid=uuid.uuid4(), username="ADMIN", password="pass")
+        admin_user.roles = [admin_role]
+        admin_user.save()
