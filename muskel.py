@@ -3,14 +3,14 @@ import json
 import falcon
 from mongoengine.errors import DoesNotExist
 from falcon_auth import FalconAuthMiddleware, JWTAuthBackend
-from authentication import authenticate_user, user_loader
+import auth
 from middleware import CORSComponent
 import model as mo
 import uuid
 
 # Authentication
 auth_backend = JWTAuthBackend(
-    user_loader=user_loader, secret_key="secret", auth_header_prefix="Bearer"
+    user_loader=auth.user_loader, secret_key="secret", auth_header_prefix="Bearer"
 )
 auth_middleware = FalconAuthMiddleware(auth_backend, exempt_routes=["/token"])
 
@@ -212,7 +212,7 @@ class TokenResource:
         doc = req.media
         username = doc["username"]
         password = doc["password"]
-        if user := authenticate_user(username, password):
+        if user := auth.authenticate_user(username, password):
             token = auth_backend.get_auth_token({"username": user.username})
             resp.body = json.dumps({"token": token})
         else:
@@ -243,14 +243,9 @@ app.add_route("/workouts/{w_id}/moves", moves)
 app.add_route("/workouts/{w_id}/moves/{m_id}", moves, suffix="id")
 
 if __name__ == "__main__":
-    admin_role = mo.Role.objects(name="ADMIN")
-    if admin_role.count() == 0:
-        admin_role = mo.Role(uuid=uuid.uuid4(), name="ADMIN")
-        admin_role.save()
-    else:
-        admin_role = admin_role.get()
+    user_role = mo.create_role("USER")
+    admin_role = mo.create_role("ADMIN")
+    
     admin_user = mo.User.objects(username="ADMIN")
     if admin_user.count() == 0:
-        admin_user = mo.User(uuid=uuid.uuid4(), username="ADMIN", password="pass")
-        admin_user.roles = [admin_role]
-        admin_user.save()
+        mo.create_user("ADMIN", "password", roles=[admin_role])

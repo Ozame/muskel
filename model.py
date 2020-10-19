@@ -1,4 +1,7 @@
 """Module for models that contain data"""
+import auth
+from typing import List
+import uuid
 from marshmallow import Schema, fields, post_load
 from marshmallow.utils import EXCLUDE
 
@@ -9,13 +12,13 @@ me.connect(db="muskel", host="localhost", port=27017)
 
 class Role(me.Document):
     uuid = me.UUIDField(primary_key=True)
-    name = me.StringField(required=True, unique=True)
+    name = me.StringField(required=True, unique=True, min_length=1)
 
 
 class User(me.Document):
     uuid = me.UUIDField(primary_key=True)
     username = me.StringField(required=True, max_length=32, unique=True)
-    password = me.StringField(required=True)
+    password = me.BinaryField(required=True, max_length=200, min_length=8)
     roles = me.ListField(me.ReferenceField(Role, reverse_delete_rule=me.DENY))
 
 
@@ -105,3 +108,27 @@ class WorkoutSchema(Schema):
     @post_load
     def make_workout(self, data, **kwargs):
         return Workout(**data)
+
+
+def create_role(role_name: str) -> Role:
+    role = Role.objects(name=role_name)
+    if role.count() == 0:
+        role = Role(uuid=uuid.uuid4(), name=role_name)
+        try:
+            role.save()
+        except (me.NotUniqueError, me.ValidationError):
+            return None
+    else:
+        return role.get()
+
+
+def create_user(username: str, password: str, roles: List[Role] = None) -> User:
+    id = uuid.uuid4()
+    hashed_password = auth.hash_password(password, id.bytes)
+    user = User(username=username, password=hashed_password, uuid=id)
+    user.roles = roles
+    #try:
+    user.save()
+    #except (me.NotUniqueError, me.ValidationError):
+   #     return None
+    return user        
