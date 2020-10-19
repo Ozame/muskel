@@ -13,4 +13,11 @@ Resources
 - **Workouts** *(Workout is created from a template)*
     - **Moves** *(Moves are exercises with their performance info)*
 
-TODO: API documentation
+****
+Todo
+****
+- API documentation (OAS?)
+- User registration
+- External configuration setup
+- Development guide 
+- Deployment guide
