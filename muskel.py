@@ -46,8 +46,7 @@ class ExerciseResource:
         resp.body = mo.ExerciseSchema().dumps(updated)
 
     def on_post(self, req, resp):
-        doc = req.media
-        new_ex = mo.Exercise(**doc)
+        new_ex = mo.ExerciseSchema().load(req.media)
         new_ex.uuid = uuid.uuid4()
         new_ex.save()
         resp.status = falcon.HTTP_201
@@ -102,8 +101,7 @@ class TemplateResource:
         resp.status = falcon.HTTP_201
 
     def on_post(self, req, resp):
-        doc = req.media
-        new_wo = mo.WorkoutTemplate(**doc)
+        new_wo = mo.WorkoutTemplateSchema().load(req.media)
         new_wo.uuid = uuid.uuid4()
         new_wo.save()
         resp.status = falcon.HTTP_201
@@ -151,10 +149,10 @@ class MoveResource:
 
     def on_post(self, req, resp, w_id):
         wo = mo.Workout.objects(uuid=w_id).get()
-        doc = req.media
-        new_move = mo.Move(**doc)
+        new_move = mo.MoveSchema().load(req.media)
         new_move.uuid = uuid.uuid4()
-        exercise = mo.Exercise.objects(uuid=doc["exercise"]).get()
+        # Loading might break this reference
+        exercise = mo.Exercise.objects(uuid=req.media["exercise"]).get()
         new_move.exercise = exercise
         new_move.save()
         wo.update(push__moves=new_move)
@@ -195,8 +193,7 @@ class WorkoutResource:
         resp.body = mo.WorkoutSchema().dumps(updated)
 
     def on_post(self, req, resp):
-        doc = req.media
-        new_wo = mo.Workout(**doc)
+        new_wo = mo.WorkoutSchema().load(req.media)
         new_wo.uuid = uuid.uuid4()
         new_wo.date = datetime.now()
         new_wo.save()

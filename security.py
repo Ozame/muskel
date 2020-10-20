@@ -11,7 +11,6 @@ import model
 
 def user_loader(payload) -> model.User:
     """Loads the user matching the payload from the database"""
-    print(payload)
     username = payload["user"]["username"]
     try:
         user = model.User.objects(username=username)
