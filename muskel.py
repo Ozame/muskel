@@ -3,14 +3,14 @@ import json
 import falcon
 from mongoengine.errors import DoesNotExist
 from falcon_auth import FalconAuthMiddleware, JWTAuthBackend
-import auth
+import security
 from middleware import CORSComponent
 import model as mo
 import uuid
 
 # Authentication
 auth_backend = JWTAuthBackend(
-    user_loader=auth.user_loader, secret_key="secret", auth_header_prefix="Bearer"
+    user_loader=security.user_loader, secret_key="secret", auth_header_prefix="Bearer"
 )
 auth_middleware = FalconAuthMiddleware(auth_backend, exempt_routes=["/token"])
 
@@ -210,13 +210,37 @@ class TokenResource:
     def on_post(self, req, resp):
         """Returns JWT token if login credentials are correct"""
         doc = req.media
-        username = doc["username"]
-        password = doc["password"]
-        if user := auth.authenticate_user(username, password):
+        try:
+            username = doc["username"]
+            password = doc["password"]
+        except KeyError:
+            raise falcon.HTTPBadRequest(description="Password or username missing")
+        if user := security.authenticate_user(username, password):
             token = auth_backend.get_auth_token({"username": user.username})
             resp.body = json.dumps({"token": token})
         else:
+            raise falcon.HTTPBadRequest(description="Incorrect username or password")
+
+
+class UserResource:
+    auth = {"exempt_methods": ["POST"]}
+
+    def on_post(self, req, resp):
+        """Creates a new user"""
+        doc = req.media
+        username = doc["username"]
+        password = doc["password"]
+        if mo.User.objects(username=username).count() != 0:
             resp.status = falcon.HTTP_400
+            return
+        elif len(password) < 8:
+            resp.status = falcon.HTTP_400
+            return
+        new_user = mo.create_user(username, password)
+        if not new_user:
+            resp.status = falcon.HTTP_400
+        else:
+            resp.status = falcon.HTTP_CREATED
 
 
 # Resource instances
@@ -225,9 +249,12 @@ workouts = WorkoutResource()
 moves = MoveResource()
 templates = TemplateResource()
 token = TokenResource()
+users = UserResource()
 
 # Routing
 app.add_route("/token", token)
+
+app.add_route("/users", users)
 
 app.add_route("/templates", templates)
 app.add_route("/templates/{id}", templates, suffix="id")
@@ -245,7 +272,7 @@ app.add_route("/workouts/{w_id}/moves/{m_id}", moves, suffix="id")
 if __name__ == "__main__":
     user_role = mo.create_role("USER")
     admin_role = mo.create_role("ADMIN")
-    
+
     admin_user = mo.User.objects(username="ADMIN")
     if admin_user.count() == 0:
         mo.create_user("ADMIN", "password", roles=[admin_role])

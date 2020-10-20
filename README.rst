@@ -21,3 +21,4 @@ Todo
 - External configuration setup
 - Development guide 
 - Deployment guide
+- Extensive error handling

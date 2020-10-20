@@ -1,5 +1,5 @@
 """Module for models that contain data"""
-import auth
+import security
 from typing import List
 import uuid
 from marshmallow import Schema, fields, post_load
@@ -124,11 +124,14 @@ def create_role(role_name: str) -> Role:
 
 def create_user(username: str, password: str, roles: List[Role] = None) -> User:
     id = uuid.uuid4()
-    hashed_password = auth.hash_password(password, id.bytes)
+    hashed_password = security.hash_password(password, id.bytes)
     user = User(username=username, password=hashed_password, uuid=id)
+    user_role = Role.objects(name="USER").get()
     user.roles = roles
-    #try:
-    user.save()
-    #except (me.NotUniqueError, me.ValidationError):
-   #     return None
+    if not user_role in user.roles or not roles:
+        user.roles.append(user_role)
+    try:
+        user.save()
+    except (me.NotUniqueError, me.ValidationError):
+        return None
     return user        
