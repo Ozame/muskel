@@ -1,11 +1,12 @@
 """Module for models that contain data"""
-import security
-from typing import List
 import uuid
+from typing import List
+
+import mongoengine as me
 from marshmallow import Schema, fields, post_load
 from marshmallow.utils import EXCLUDE
 
-import mongoengine as me
+import security
 
 me.connect(db="muskel", host="localhost", port=27017)
 

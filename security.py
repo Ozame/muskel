@@ -1,7 +1,8 @@
 """Handles the authentication of users"""
-from mongoengine.errors import DoesNotExist
 import hashlib
 from hmac import compare_digest
+
+from mongoengine.errors import DoesNotExist
 
 import model
 
