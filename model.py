@@ -1,12 +1,7 @@
 """Module for models that contain data"""
-import uuid
-from typing import List
-
 import mongoengine as me
 from marshmallow import Schema, fields, post_load
 from marshmallow.utils import EXCLUDE
-
-import security
 
 me.connect(db="muskel", host="localhost", port=27017)
 
@@ -109,30 +104,3 @@ class WorkoutSchema(Schema):
     @post_load
     def make_workout(self, data, **kwargs):
         return Workout(**data)
-
-
-def create_role(role_name: str) -> Role:
-    role = Role.objects(name=role_name)
-    if role.count() == 0:
-        role = Role(uuid=uuid.uuid4(), name=role_name)
-        try:
-            role.save()
-        except (me.NotUniqueError, me.ValidationError):
-            return None
-    else:
-        return role.get()
-
-
-def create_user(username: str, password: str, roles: List[Role] = None) -> User:
-    id = uuid.uuid4()
-    hashed_password = security.hash_password(password, id.bytes)
-    user = User(username=username, password=hashed_password, uuid=id)
-    user_role = Role.objects(name="USER").get()
-    user.roles = roles
-    if not user_role in user.roles or not roles:
-        user.roles.append(user_role)
-    try:
-        user.save()
-    except (me.NotUniqueError, me.ValidationError):
-        return None
-    return user        

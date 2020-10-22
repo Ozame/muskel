@@ -2,7 +2,6 @@ import json
 import os
 import uuid
 from datetime import datetime
-from hashlib import new
 
 import falcon
 import marshmallow as ma
@@ -13,6 +12,7 @@ from mongoengine.errors import DoesNotExist, ValidationError
 import model as mo
 import security
 from middleware import CORSComponent
+from service import create_role, create_user
 
 # Load environment variables from .env file
 load_dotenv()
@@ -277,11 +277,11 @@ app.add_route("/workouts/{w_id}/moves", moves)
 app.add_route("/workouts/{w_id}/moves/{m_id}", moves, suffix="id")
 
 if __name__ == "__main__":
-    user_role = mo.create_role("USER")
-    admin_role = mo.create_role("ADMIN")
+    user_role = create_role("USER")
+    admin_role = create_role("ADMIN")
     admin_username = os.getenv("ADMIN_USERNAME")
     admin_password = os.getenv("ADMIN_PASSWORD")
 
     admin_user = mo.User.objects(username="ADMIN")
     if admin_user.count() == 0:
-        mo.create_user(admin_username, admin_password, roles=[admin_role])
+        create_user(admin_username, admin_password, roles=[admin_role])

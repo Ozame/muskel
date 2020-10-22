@@ -4,26 +4,26 @@ from hmac import compare_digest
 
 from mongoengine.errors import DoesNotExist
 
-import model
+import model as mo
 
 # User loader for test purposes
 # user_loader = lambda payload: {'username': payload}
 
 
-def user_loader(payload) -> model.User:
+def user_loader(payload) -> mo.User:
     """Loads the user matching the payload from the database"""
     username = payload["user"]["username"]
     try:
-        user = model.User.objects(username=username)
+        user = mo.User.objects(username=username)
     except DoesNotExist:
         print(f"user with username {username} doesn't exist!")
         return None
     return user
 
 
-def authenticate_user(username: str, password: str) -> model.User:
+def authenticate_user(username: str, password: str) -> mo.User:
     try:
-        user = model.User.objects(username=username).get()
+        user = mo.User.objects(username=username).get()
     except DoesNotExist:
         return None
     if check_user_password(user, password):
@@ -40,6 +40,6 @@ def check_password(password: bytes, password_candidate: bytes) -> bool:
     return compare_digest(password, password_candidate)
 
 
-def check_user_password(user: model.User, password_candidate: str) -> bool:
+def check_user_password(user: mo.User, password_candidate: str) -> bool:
     hashed_password_candidate = hash_password(password_candidate, user.uuid.bytes)
     return check_password(user.password, hashed_password_candidate)
