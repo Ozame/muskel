@@ -65,9 +65,9 @@ class WorkoutTemplateSchema(Schema):
 class Move(me.Document):
     uuid = me.UUIDField(primary_key=True)
     name = me.StringField(required=True, max_length=200)
-    sets = me.IntField(min_value=0)
-    reps = me.IntField(min_value=0)
-    weight = me.IntField(min_value=0)
+    sets = me.IntField(min_value=0, default=0)
+    reps = me.IntField(min_value=0, default=0)
+    weight = me.IntField(min_value=0, default=0)
     notes = me.StringField(default="")
     exercise = me.ReferenceField(Exercise, reverse_delete_rule=me.DENY)
 
@@ -82,7 +82,7 @@ class MoveSchema(Schema):
     reps = fields.Integer()
     weight = fields.Integer()
     notes = fields.Str()
-    exercise = fields.Nested(ExerciseSchema)
+    exercise = fields.Nested(ExerciseSchema, dump_only=True)
 
     @post_load
     def make_move(self, data, **kwargs):
@@ -103,7 +103,7 @@ class WorkoutSchema(Schema):
     uuid = fields.UUID(dump_only=True)
     name = fields.Str()
     date = fields.DateTime()
-    moves = fields.List(fields.Nested(MoveSchema))
+    moves = fields.List(fields.Nested(MoveSchema), dump_only=True)
 
     @post_load
     def make_workout(self, data, **kwargs):

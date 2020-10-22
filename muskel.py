@@ -1,12 +1,14 @@
 from datetime import datetime
+from hashlib import new
 import json
 import falcon
-from mongoengine.errors import DoesNotExist
+from mongoengine.errors import DoesNotExist, ValidationError
 from falcon_auth import FalconAuthMiddleware, JWTAuthBackend
 import security
 from middleware import CORSComponent
 import model as mo
 import uuid
+import marshmallow as ma
 
 # Authentication
 auth_backend = JWTAuthBackend(
@@ -149,11 +151,13 @@ class MoveResource:
 
     def on_post(self, req, resp, w_id):
         wo = mo.Workout.objects(uuid=w_id).get()
-        new_move = mo.MoveSchema().load(req.media)
-        new_move.uuid = uuid.uuid4()
-        # Loading might break this reference
-        exercise = mo.Exercise.objects(uuid=req.media["exercise"]).get()
-        new_move.exercise = exercise
+        try:
+            new_move = mo.MoveSchema().load(req.media)
+            exercise = mo.Exercise.objects(uuid=req.media["exercise"]).get()
+            new_move.exercise = exercise
+            new_move.uuid = uuid.uuid4()
+        except ma.ValidationError as err:
+            raise falcon.HTTPInvalidParam("Bad parameter", err.field_name)
         new_move.save()
         wo.update(push__moves=new_move)
         resp.body = mo.MoveSchema().dumps(new_move)
