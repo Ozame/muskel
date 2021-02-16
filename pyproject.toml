@@ -14,6 +14,7 @@ mongoengine = "^0.20.0"
 marshmallow = "^3.8.0"
 falcon-auth = "^1.1.0"
 python-dotenv = "^0.14.0"
+pyjwt = "1.7.1"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"

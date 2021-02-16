@@ -282,6 +282,6 @@ if __name__ == "__main__":
     admin_username = os.getenv("ADMIN_USERNAME")
     admin_password = os.getenv("ADMIN_PASSWORD")
 
-    admin_user = mo.User.objects(username="ADMIN")
+    admin_user = mo.User.objects(username=admin_username)
     if admin_user.count() == 0:
         create_user(admin_username, admin_password, roles=[admin_role])
